@@ -1,10 +1,10 @@
 {
-  "id": "may-i/",
+  "id": "/may-i/",
   "name": "May I Scorer",
   "short_name": "May I",
   "description": "Score keeper for the card game May I. Seven rounds, lowest total wins.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/may-i/",
+  "scope": "/may-i/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f3d26",

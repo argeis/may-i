@@ -1,4 +1,6 @@
-const CACHE = 'mayi-v4';
+// Only caches starting with PREFIX are ever deleted: Cache Storage is shared by every app on this origin.
+const PREFIX = 'mayi-';
+const CACHE = PREFIX + 'v5';
 const ASSETS = [
   './',
   './index.html',
@@ -18,7 +20,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
