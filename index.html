@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>May I Scorer</title>
+  <meta name="description" content="Score keeper for the card game May I. Seven rounds, lowest total wins.">
+  <meta name="theme-color" content="#1b5e3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="May I">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>May I</h1>
+    <div class="topbar-actions">
+      <button id="btn-history" class="icon-btn" title="Past games" aria-label="Past games">&#128337;</button>
+      <button id="btn-new" class="icon-btn" title="New game" aria-label="New game">&#10010;</button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <!-- Setup screen -->
+  <template id="tpl-setup">
+    <section class="card">
+      <h2>New game</h2>
+      <p class="muted">Add 2 to 8 players. Seven rounds. Lowest total wins.</p>
+      <div id="player-list" class="player-list"></div>
+      <button id="add-player" class="btn btn-secondary">+ Add player</button>
+      <button id="start-game" class="btn btn-primary">Start game</button>
+    </section>
+    <section class="card">
+      <h2>Card values</h2>
+      <table class="values">
+        <tr><td>Ace</td><td>20</td></tr>
+        <tr><td>King, Queen, Jack</td><td>10</td></tr>
+        <tr><td>Joker</td><td>50</td></tr>
+        <tr><td>2 to 10</td><td>Face value</td></tr>
+      </table>
+    </section>
+  </template>
+
+  <!-- Score entry sheet -->
+  <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-head">
+        <div>
+          <div id="sheet-title" class="sheet-title"></div>
+          <div id="sheet-sub" class="muted small"></div>
+        </div>
+        <button id="sheet-close" class="icon-btn" aria-label="Close">&#10005;</button>
+      </div>
+
+      <div class="total-row">
+        <span class="muted">Hand total</span>
+        <span id="sheet-total" class="total">0</span>
+      </div>
+
+      <div id="tally" class="tally"></div>
+
+      <div class="keypad">
+        <button class="key" data-add="2">2</button>
+        <button class="key" data-add="3">3</button>
+        <button class="key" data-add="4">4</button>
+        <button class="key" data-add="5">5</button>
+        <button class="key" data-add="6">6</button>
+        <button class="key" data-add="7">7</button>
+        <button class="key" data-add="8">8</button>
+        <button class="key" data-add="9">9</button>
+        <button class="key" data-add="10">10</button>
+        <button class="key key-face" data-add="10" data-label="J">J</button>
+        <button class="key key-face" data-add="10" data-label="Q">Q</button>
+        <button class="key key-face" data-add="10" data-label="K">K</button>
+        <button class="key key-ace" data-add="20" data-label="A">A <small>20</small></button>
+        <button class="key key-undo" id="key-undo">&#8592; Undo</button>
+        <button class="key key-joker" data-add="50" data-label="Joker">Joker <small>50</small></button>
+      </div>
+
+      <div class="manual-row">
+        <label for="manual">Or type a total</label>
+        <input id="manual" type="number" inputmode="numeric" min="0" placeholder="0">
+      </div>
+
+      <div class="sheet-actions">
+        <button id="sheet-zero" class="btn btn-secondary">Went out (0)</button>
+        <button id="sheet-save" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
