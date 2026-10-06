@@ -1,4 +1,4 @@
-const CACHE = 'mayi-v2';
+const CACHE = 'mayi-v3';
 const ASSETS = [
   './',
   './index.html',
