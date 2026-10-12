@@ -15,6 +15,7 @@
   const STORE_GAME = 'mayi.game.v1';
   const STORE_HISTORY = 'mayi.history.v1';
   const STORE_NAMES = 'mayi.names.v1';
+  const STORE_ENTRY = 'mayi.entry.v1';
 
   const $ = (sel, root) => (root || document).querySelector(sel);
   const el = (tag, attrs, children) => {
@@ -52,6 +53,12 @@
     const p = g.scores[r].findIndex(v => v == null);
     return { r, p };
   };
+  // The next player after p, wrapping round, with no score yet this round.
+  const nextEmptyInRound = (g, r, p) => {
+    const n = g.players.length;
+    for (let i = 1; i < n; i++) if (g.scores[r][(p + i) % n] == null) return (p + i) % n;
+    return null;
+  };
   function ranking(g) {
     const t = totals(g);
     return g.players.map((name, i) => ({ name, i, total: t[i] })).sort((a, b) => a.total - b.total);
@@ -79,16 +86,31 @@
     app.appendChild(tpl);
     const list = $('#player-list');
     const names = load(STORE_NAMES, ['', '']);
+    // Return on the phone keyboard moves to the next name; on the last one it closes the keyboard.
+    const onNameKey = e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const inputs = [...list.querySelectorAll('input')];
+      const following = inputs[inputs.indexOf(e.target) + 1];
+      if (following) following.focus(); else e.target.blur();
+    };
     const addRow = (name) => {
       const row = el('div', { class: 'player-row' }, [
-        el('input', { type: 'text', placeholder: 'Player ' + (list.children.length + 1), value: name || '', maxlength: '16', autocomplete: 'off' }),
+        el('input', {
+          type: 'text', placeholder: 'Player ' + (list.children.length + 1), value: name || '', maxlength: '16',
+          autocomplete: 'off', autocapitalize: 'words', autocorrect: 'off', spellcheck: 'false', onkeydown: onNameKey,
+        }),
         el('button', { class: 'remove', 'aria-label': 'Remove', text: '✕', onclick: () => { if (list.children.length > 2) { row.remove(); refresh(); } } }),
       ]);
       list.appendChild(row);
       refresh();
     };
     const refresh = () => {
-      [...list.querySelectorAll('input')].forEach((inp, i) => inp.placeholder = 'Player ' + (i + 1));
+      const inputs = [...list.querySelectorAll('input')];
+      inputs.forEach((inp, i) => {
+        inp.placeholder = 'Player ' + (i + 1);
+        inp.setAttribute('enterkeyhint', i === inputs.length - 1 ? 'done' : 'next');
+      });
       $('#add-player').disabled = list.children.length >= 8;
     };
     (names.length >= 2 ? names : ['', '']).forEach(addRow);
@@ -179,7 +201,9 @@
 
     if (next) {
       const n = next;
-      app.appendChild(el('button', { class: 'btn btn-primary', text: 'Enter ' + g.players[n.p] + "'s round " + (n.r + 1) + ' score', onclick: () => openSheet(n.r, n.p) }));
+      app.appendChild(el('div', { class: 'dock' }, [
+        el('button', { class: 'btn btn-primary', text: 'Enter ' + g.players[n.p] + "'s round " + (n.r + 1) + ' score', onclick: () => openSheet(n.r, n.p) }),
+      ]));
     }
   }
 
@@ -231,63 +255,125 @@
 
   // ---------- score sheet ----------
   const sheet = $('#sheet');
+  const panel = $('.sheet-panel', sheet);
+  const saveBtn = $('#sheet-save');
   let sheetCell = null;
+  let sheetNext = null;   // player whose sheet opens after this one is saved, if any
+  let openedAt = 0;
+  let mode = load(STORE_ENTRY, 'cards') === 'total' ? 'total' : 'cards';
   let tally = [];
-  const manual = $('#manual');
+  let typed = '';         // digits typed in total mode, or the score being edited
+  let typedFresh = false; // true while `typed` holds the score being edited: the next digit replaces it
 
+  // A second tap on Save or "Went out" can land on the next player's sheet; ignore taps that soon after it opens.
+  const settled = () => performance.now() - openedAt > 350;
+  const hasEntry = () => tally.length > 0 || typed !== '';
   function tallyTotal() { return tally.reduce((s, c) => s + c.value, 0); }
   function currentValue() {
-    const m = manual.value.trim();
-    if (m !== '' && tally.length === 0) return Math.max(0, parseInt(m, 10) || 0);
-    return tallyTotal();
+    if (tally.length) return tallyTotal();
+    return typed === '' ? 0 : parseInt(typed, 10);
   }
   function updateSheet() {
     $('#sheet-total').textContent = String(currentValue());
+    sheet.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    $('#pad-cards').classList.toggle('hidden', mode !== 'cards');
+    $('#pad-total').classList.toggle('hidden', mode !== 'total');
     const box = $('#tally');
     box.innerHTML = '';
     tally.forEach(c => box.appendChild(el('span', { class: 'chip ' + (c.label === 'A' ? 'ace' : c.label === 'Joker' ? 'joker' : ''), text: c.label })));
-    if (!tally.length) box.appendChild(el('span', { class: 'muted small', text: 'Tap the cards left in the hand, or type a total.' }));
+    if (!tally.length) box.appendChild(el('span', { class: 'muted small', text: mode === 'cards' ? 'Tap the cards left in the hand.' : 'Type the hand total.' }));
+    saveBtn.disabled = !hasEntry();
+    saveBtn.textContent = sheetNext == null ? 'Save' : 'Save & next';
   }
   function openSheet(r, p) {
+    const advancing = !sheet.classList.contains('hidden');
     sheetCell = { r, p };
     const existing = game.scores[r][p];
+    sheetNext = existing == null ? nextEmptyInRound(game, r, p) : null;
     tally = [];
-    manual.value = existing == null ? '' : String(existing);
+    typed = existing == null ? '' : String(existing);
+    typedFresh = existing != null;
     $('#sheet-title').textContent = game.players[p] + ' — round ' + (r + 1);
     $('#sheet-sub').textContent = ROUND_HINTS[r] + (existing == null ? '' : ' · currently ' + existing);
     updateSheet();
     sheet.classList.remove('hidden');
+    document.body.classList.add('sheet-open');
+    if (advancing) { panel.classList.remove('advance'); void panel.offsetWidth; panel.classList.add('advance'); }
+    openedAt = performance.now();
   }
-  function closeSheet() { sheet.classList.add('hidden'); sheetCell = null; }
+  function closeSheet() {
+    sheet.classList.add('hidden');
+    document.body.classList.remove('sheet-open');
+    panel.classList.remove('advance');
+    sheetCell = null;
+  }
   function saveSheet(value) {
     if (!sheetCell || !game) return;
     const { r, p } = sheetCell;
+    const following = sheetNext;
+    const wasEmpty = game.scores[r][p] == null;
     game.scores[r][p] = value;
     save(STORE_GAME, game);
-    closeSheet();
     render();
+    if (following != null) {
+      openSheet(r, following);
+      toast(game.players[p] + ': ' + value);
+      return;
+    }
+    closeSheet();
     if (isFinished(game)) {
       toast('Game over — ' + ranking(game)[0].name + ' wins');
-    } else {
-      const n = nextCell(game);
-      if (n && n.r === r + 1 && n.p === 0) toast('Round ' + (r + 1) + ' done');
+    } else if (wasEmpty && roundComplete(game, r)) {
+      toast('Round ' + (r + 1) + ' done');
     }
   }
+  function setMode(m) {
+    mode = m;
+    save(STORE_ENTRY, m);
+    updateSheet();
+  }
+  function addCard(value, label) {
+    tally.push({ value, label });
+    typed = ''; typedFresh = false;
+    updateSheet();
+  }
+  function typeDigit(d) {
+    tally = [];
+    if (typedFresh) { typed = ''; typedFresh = false; }
+    if (typed.length < 4) typed = typed === '0' ? d : typed + d;
+    updateSheet();
+  }
+  function backspace() {
+    if (mode === 'cards' || tally.length) tally.pop();
+    else { typed = typed.slice(0, -1); typedFresh = false; }
+    updateSheet();
+  }
+  function clearEntry() { tally = []; typed = ''; typedFresh = false; updateSheet(); }
+  function trySave() { if (settled() && hasEntry()) saveSheet(currentValue()); }
 
   sheet.querySelectorAll('.key[data-add]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      tally.push({ value: parseInt(btn.dataset.add, 10), label: btn.dataset.label || btn.dataset.add });
-      manual.value = '';
-      updateSheet();
-    });
+    btn.addEventListener('click', () => addCard(parseInt(btn.dataset.add, 10), btn.dataset.label || btn.dataset.add));
   });
-  $('#key-undo').onclick = () => { tally.pop(); updateSheet(); };
-  manual.addEventListener('input', () => { tally = []; updateSheet(); });
-  manual.addEventListener('keydown', e => { if (e.key === 'Enter') saveSheet(currentValue()); });
-  $('#sheet-zero').onclick = () => saveSheet(0);
-  $('#sheet-save').onclick = () => saveSheet(currentValue());
+  sheet.querySelectorAll('.key[data-digit]').forEach(btn => btn.addEventListener('click', () => typeDigit(btn.dataset.digit)));
+  sheet.querySelectorAll('.key[data-clear]').forEach(btn => btn.addEventListener('click', clearEntry));
+  sheet.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+  $('#key-undo').onclick = backspace;
+  $('#key-back').onclick = backspace;
+  $('#sheet-zero').onclick = () => { if (settled()) saveSheet(0); };
+  saveBtn.onclick = trySave;
   $('#sheet-close').onclick = closeSheet;
-  $('.sheet-backdrop').onclick = closeSheet;
+  $('.sheet-backdrop').onclick = () => { if (settled()) closeSheet(); };
+
+  // Physical keyboards still work: digits type a total, Backspace, Enter saves, Escape closes.
+  document.addEventListener('keydown', e => {
+    if (sheet.classList.contains('hidden') || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^[0-9]$/.test(e.key)) { if (mode !== 'total') setMode('total'); typeDigit(e.key); }
+    else if (e.key === 'Backspace') backspace();
+    else if (e.key === 'Enter') trySave();
+    else if (e.key === 'Escape') closeSheet();
+    else return;
+    e.preventDefault();
+  });
 
   // ---------- top bar ----------
   $('#btn-new').onclick = () => {
@@ -295,6 +381,9 @@
     finishGame(); view = 'setup'; render();
   };
   $('#btn-history').onclick = () => { view = view === 'history' ? (game ? 'game' : 'setup') : 'history'; render(); };
+
+  // iOS Safari only shows :active press feedback when a touch listener exists.
+  document.addEventListener('touchstart', () => {}, { passive: true });
 
   render();
 

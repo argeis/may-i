@@ -25,7 +25,11 @@ body {
   padding-bottom: calc(24px + var(--safe-bottom));
   overscroll-behavior-y: none;
 }
-button { font: inherit; cursor: pointer; }
+/* manipulation: no double-tap zoom when the same key is tapped twice quickly (two 10s, say). */
+button {
+  font: inherit; cursor: pointer; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
 input { font: inherit; }
 h1, h2, h3 { margin: 0; }
 .muted { color: var(--muted); }
@@ -128,25 +132,44 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
 .row-actions { display: flex; gap: 10px; }
 .row-actions .btn { flex: 1; }
 
+/* Keeps the next-score button within thumb reach while the page scrolls. */
+.dock {
+  position: sticky; bottom: 0; z-index: 5;
+  margin: 0 -16px; padding: 14px 16px calc(12px + var(--safe-bottom));
+  background: linear-gradient(to bottom, transparent, var(--bg) 40%);
+}
+.dock .btn { margin-top: 0; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+
 /* Score sheet */
 .sheet { position: fixed; inset: 0; z-index: 50; }
-.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); touch-action: none; }
+body.sheet-open { overflow: hidden; }
 .sheet-panel {
   position: absolute; left: 0; right: 0; bottom: 0;
   background: var(--card); border-radius: 18px 18px 0 0;
   padding: 14px 16px calc(16px + var(--safe-bottom));
-  max-height: 92vh; overflow-y: auto;
+  max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
   max-width: 720px; margin: 0 auto;
   animation: up .18s ease-out;
 }
 @keyframes up { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+/* Moving on to the next player: slide the name in so the change is noticed. */
+.sheet-panel.advance .sheet-head { animation: nudge .22s ease-out; }
+@keyframes nudge { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
 .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; }
 .sheet-title { font-weight: 700; font-size: 1.15rem; }
 .total-row {
-  display: flex; align-items: baseline; justify-content: space-between;
-  margin: 10px 0 6px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 10px 0 8px;
 }
-.total { font-size: 2.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.total-box { text-align: right; }
+.total { font-size: 2.4rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.mode { display: inline-flex; background: #f3f4f6; border-radius: 10px; padding: 3px; }
+.mode-btn {
+  border: 0; background: transparent; color: var(--muted);
+  min-height: 40px; padding: 0 12px; border-radius: 8px; font-size: .9rem; font-weight: 600;
+}
+.mode-btn[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
 .tally {
   min-height: 30px; display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;
 }
@@ -165,16 +188,14 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
 .key:active { background: #e5e7eb; }
 .key-face { background: #eef2ff; }
 .key-ace { background: #fef3c7; grid-column: span 2; }
-.key-joker { background: #fee2e2; grid-column: span 5; }
-.key-undo { background: #f3f4f6; color: var(--muted); font-size: .9rem; }
-
-.manual-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
-.manual-row label { color: var(--muted); font-size: .9rem; }
-.manual-row input {
-  width: 110px; padding: 10px; border: 1px solid var(--line); border-radius: 10px;
-  text-align: right; font-size: 1.1rem;
-}
-.sheet-actions { display: flex; gap: 10px; }
+.key-joker { background: #fee2e2; grid-column: span 3; }
+.key-undo, .key-clear { background: #f3f4f6; color: var(--muted); font-size: .9rem; }
+.key-clear { grid-column: span 2; }
+.keypad-digits { grid-template-columns: repeat(3, 1fr); }
+.keypad-digits .key { font-size: 1.3rem; }
+.keypad-digits .key-clear { grid-column: auto; font-size: .9rem; }
+.keypad-digits .key-undo { font-size: 1.3rem; }
+.sheet-actions { display: flex; gap: 10px; margin-top: 4px; }
 .sheet-actions .btn { flex: 1; }
 
 /* History */
@@ -188,7 +209,7 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
 .history-item .del { background: transparent; border: 0; color: var(--muted); font-size: 1.1rem; }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(24px + var(--safe-bottom)); transform: translateX(-50%);
+  position: fixed; left: 50%; top: calc(8px + var(--safe-top)); transform: translateX(-50%);
   background: #111; color: #fff; padding: 10px 16px; border-radius: 999px; font-size: .9rem;
   z-index: 60; opacity: 0; transition: opacity .2s; pointer-events: none;
 }

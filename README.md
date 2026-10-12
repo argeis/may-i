@@ -29,7 +29,7 @@ The app is published with GitHub Pages at:
 ## Using it
 
 1. Enter player names (2 to 8) and tap **Start game**.
-2. After each round, tap a player's cell (the highlighted one is next) and tap the cards left in their hand. Ace, face cards and Joker are pre-valued; the total updates as you go. You can also type a total directly, or tap **Went out (0)**.
+2. After each round, tap the green button at the bottom (or any cell) and tap the cards left in that player's hand. Ace, face cards and Joker are pre-valued; the total updates as you go. Switch to **Type total** to key in a number on the app's own pad instead, or tap **Went out (0)**. **Save & next** moves straight on to the next player, so a whole round can be entered without closing the sheet.
 3. Standings update live, lowest at the top. After round 7 the winner is shown.
 4. Tap any filled cell to correct a score. Past games are kept under the clock icon.
 
