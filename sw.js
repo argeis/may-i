@@ -1,6 +1,6 @@
 // Only caches starting with PREFIX are ever deleted: Cache Storage is shared by every app on this origin.
 const PREFIX = 'mayi-';
-const CACHE = PREFIX + 'v5';
+const CACHE = PREFIX + 'v6';
 const ASSETS = [
   './',
   './index.html',

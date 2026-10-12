@@ -47,7 +47,7 @@
   </template>
 
   <!-- Score entry sheet -->
-  <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true">
+  <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
     <div class="sheet-backdrop"></div>
     <div class="sheet-panel">
       <div class="sheet-head">
@@ -59,13 +59,19 @@
       </div>
 
       <div class="total-row">
-        <span class="muted">Hand total</span>
-        <span id="sheet-total" class="total">0</span>
+        <div class="mode" role="group" aria-label="Entry method">
+          <button class="mode-btn" data-mode="cards">Count cards</button>
+          <button class="mode-btn" data-mode="total">Type total</button>
+        </div>
+        <div class="total-box">
+          <div class="muted small">Hand total</div>
+          <div id="sheet-total" class="total" aria-live="polite">0</div>
+        </div>
       </div>
 
       <div id="tally" class="tally"></div>
 
-      <div class="keypad">
+      <div id="pad-cards" class="keypad">
         <button class="key" data-add="2">2</button>
         <button class="key" data-add="3">3</button>
         <button class="key" data-add="4">4</button>
@@ -81,11 +87,23 @@
         <button class="key key-ace" data-add="20" data-label="A">A <small>20</small></button>
         <button class="key key-undo" id="key-undo">&#8592; Undo</button>
         <button class="key key-joker" data-add="50" data-label="Joker">Joker <small>50</small></button>
+        <button class="key key-clear" data-clear>Clear</button>
       </div>
 
-      <div class="manual-row">
-        <label for="manual">Or type a total</label>
-        <input id="manual" type="number" inputmode="numeric" min="0" placeholder="0">
+      <!-- Own digit pad rather than a text input, so the phone keyboard never covers the sheet. -->
+      <div id="pad-total" class="keypad keypad-digits hidden">
+        <button class="key" data-digit="1">1</button>
+        <button class="key" data-digit="2">2</button>
+        <button class="key" data-digit="3">3</button>
+        <button class="key" data-digit="4">4</button>
+        <button class="key" data-digit="5">5</button>
+        <button class="key" data-digit="6">6</button>
+        <button class="key" data-digit="7">7</button>
+        <button class="key" data-digit="8">8</button>
+        <button class="key" data-digit="9">9</button>
+        <button class="key key-clear" data-clear>Clear</button>
+        <button class="key" data-digit="0">0</button>
+        <button class="key key-undo" id="key-back" aria-label="Delete digit">&#9003;</button>
       </div>
 
       <div class="sheet-actions">
